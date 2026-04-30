@@ -178,16 +178,7 @@ pyrightconfig.json
 # Project-specific generated data
 data/raw/
 data/processed/
-output/figures/
-output/doc/*.md
-output/doc/*.docx
-output/doc/*.pdf
-output/doc/*.aux
-output/doc/*.fdb_latexmk
-output/doc/*.fls
-output/doc/*.log
-output/doc/*.out
-output/doc/*.synctex.gz
+output/
 
 # macOS
 .DS_Store
