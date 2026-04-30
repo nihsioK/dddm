@@ -7,9 +7,14 @@
 \usepackage{titlesec}
 \usepackage{booktabs}
 \usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{array}
+\usepackage{enumitem}
 
 \geometry{a4paper, margin=2cm}
 \titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\graphicspath{{output/figures/}}
 
 \begin{document}
 
@@ -26,70 +31,231 @@
 \end{center}
 
 \section*{Введение}
-Четвертый этап проекта Staj.kz посвящен поиску верифицированных научных решений, которые могут повысить эффективность нашей бизнес-идеи. Целью данного этапа является автоматизированный сбор данных через API OpenAlex, построение исследовательского датасета и применение методов сетевого анализа и тематического моделирования для выявления трендов в области найма молодых специалистов и стажировок.
+Четвертый этап проекта Staj.kz посвящён поиску верифицированных научных решений, которые могут повысить эффективность нашей бизнес-идеи. Целью данного этапа является автоматизированный сбор данных через API OpenAlex, построение исследовательского датасета и применение методов сетевого анализа и тематического моделирования для выявления трендов в области найма молодых специалистов и стажировок.
 
+% ─────────────────────────────────────────────────────────────
 \section{Задание 1. Сбор и подготовка научных данных}
 
 \subsection{Поисковая стратегия}
 Для анализа была сформулирована стратегия, охватывающая пересечение образовательных технологий и рынка труда.
 \begin{itemize}
     \item \textbf{Поисковый запрос:} \texttt{(internship OR "early career" OR "graduate recruitment" OR "entry level jobs")}
-    \item \textbf{Временной диапазон:} 2014 -- 2024 гг.
+    \item \textbf{Ключевые слова:} internship, early career, graduate recruitment, job matching, recommender systems, employability, career development.
+    \item \textbf{Временной диапазон:} 2014--2024 гг.
     \item \textbf{Источник данных:} OpenAlex API (база из более чем 250 млн научных работ).
 \end{itemize}
 
-\subsection{Обработка и очистка данных}
-С помощью разработанного Python-скрипта было собрано $N = 1200$ публикаций. В ходе предобработки были выполнены следующие шаги:
-\begin{enumerate}
-    \item \textbf{Deduplication:} Удаление дубликатов по уникальному ID OpenAlex и заголовкам (отсеяно 8 записей).
-    \item \textbf{Normalization:} Приведение имен авторов и названий журналов к формату Title Case, удаление лишних пробелов.
-    \item \textbf{Missing Values:} Обработка пропусков в аффилиациях и ключевых словах (присвоение меток "Unknown").
-    \item \textbf{Feature Engineering:} Выделение стран из данных об организациях и формирование финальной таблицы (Title, Year, Authors, Journal, Citations, Keywords, Country).
-\end{enumerate}
-\textit{Финальный датасет включает 1192 уникальные публикации.}
+\subsection{Структура датасета}
+Итоговый датасет содержит следующие поля:
 
+\begin{center}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Поле} & \textbf{Описание} \\
+\midrule
+\texttt{id}        & Уникальный идентификатор OpenAlex \\
+\texttt{title}     & Название публикации \\
+\texttt{year}      & Год публикации (2014--2024) \\
+\texttt{authors}   & Список авторов (через «;») \\
+\texttt{journal}   & Название журнала / источника \\
+\texttt{citations} & Количество цитирований \\
+\texttt{keywords}  & Ключевые слова OpenAlex (через «;») \\
+\texttt{countries} & Коды стран аффилиаций авторов \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Обработка и очистка данных}
+С помощью разработанного Python-скрипта (\texttt{fetch\_data.py}) было собрано $N = 1200$ публикаций. В ходе предобработки (\texttt{clean\_data.py}) были выполнены следующие шаги:
+\begin{enumerate}
+    \item \textbf{Deduplication:} Удаление дубликатов по уникальному ID OpenAlex и заголовкам — отсеяно 8 записей.
+    \item \textbf{Normalization:} Приведение имён авторов и названий журналов к формату Title Case, удаление лишних пробелов.
+    \item \textbf{Missing Values:} Обработка пропусков в аффилиациях и ключевых словах (присвоение меток \textit{«Unknown»}).
+    \item \textbf{Фильтрация по году:} Оставлены только работы 2014 года и позже.
+    \item \textbf{Feature Engineering:} Выделение стран из данных об организациях; формирование финальной таблицы с полями, описанными выше.
+\end{enumerate}
+\textit{Финальный датасет включает \textbf{1192} уникальные публикации.}
+
+\subsection*{Ссылки на данные и код}
+\begin{itemize}[noitemsep]
+    \item Сырые данные (JSON): \texttt{assignment4/data/raw/openalex\_raw.json}
+    \item Сырой CSV: \texttt{assignment4/data/raw/openalex\_processed\_raw.csv}
+    \item Финальный датасет: \texttt{assignment4/data/processed/openalex\_cleaned.csv}
+    \item Скрипт сбора: \texttt{assignment4/fetch\_data.py}
+    \item Скрипт очистки: \texttt{assignment4/clean\_data.py}
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────
 \section{Задание 2. Исследовательский анализ и сетевая аналитика}
 
-\subsection{Наукометрические показатели}
-Визуализация данных выявила устойчивый рост интереса к теме стажировок, с резким пиком в 2021-2022 годах (связанным с исследованиями удаленного формата работы в период пандемии).
+\subsection{Динамика публикаций по годам}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{dynamics}
+    \caption{Динамика числа публикаций по теме стажировок (2014--2024).}
+    \label{fig:dynamics}
+\end{figure}
+
+\textbf{Вывод:} Наблюдается устойчивый рост числа публикаций с 2014 по 2022 год с резким пиком в 2021--2022 годах. Этот пик связан с массовым переходом на удалённые стажировки в период пандемии COVID-19 и последующей рефлексией академического сообщества на этот феномен.
+
+\subsection{Топ-10 журналов, авторов и стран}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \includegraphics[width=\textwidth]{top_journals}
+        \caption{Топ-10 журналов}
+        \label{fig:journals}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \includegraphics[width=\textwidth]{top_countries}
+        \caption{Топ-10 стран}
+        \label{fig:countries}
+    \end{subfigure}
+    \caption{Наукометрические показатели: журналы и страны.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{top_authors}
+    \caption{Топ-10 авторов по числу публикаций.}
+    \label{fig:authors}
+\end{figure}
+
+\textbf{Вывод:}
 \begin{itemize}
-    \item \textbf{Топ журналы:} Journal of Vocational Behavior, Medical Education.
-    \item \textbf{Топ страны:} США, Великобритания, Китай, Австралия.
+    \item \textbf{Топ журналы:} Лидируют \textit{Journal of Vocational Behavior} и \textit{Medical Education} — тематика исследований сосредоточена на карьерных траекториях и профессиональной подготовке в медицине.
+    \item \textbf{Топ страны:} США, Великобритания, Китай и Австралия — основные производители научных знаний в данной области. Центральноазиатский регион практически не представлен, что подтверждает выявленный research gap.
 \end{itemize}
+
+\subsection{Распределение цитирований}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.80\textwidth]{citations}
+    \caption{Распределение количества цитирований (логарифмическая шкала по оси Y).}
+    \label{fig:citations}
+\end{figure}
+
+\textbf{Вывод:} Распределение цитирований подчиняется степенному закону: подавляющее большинство работ имеет менее 20 цитирований, тогда как единичные статьи собрали свыше 1000 ссылок. Это характерно для академических баз данных и указывает на наличие нескольких ключевых «якорных» статей, формирующих повестку области.
 
 \subsection{Сетевой анализ (Keyword Co-occurrence Network)}
-Была построена сеть совместной встречаемости ключевых слов. Расчет метрик центральности (\textit{Degree Centrality}) показал, что наиболее влиятельными узлами являются:
-\begin{enumerate}
-    \item \textbf{Psychology} (0.87) — влияние стажировок на самоидентификацию.
-    \item \textbf{Medical Education} (0.66) — наиболее проработанная методология стажировок.
-    \item \textbf{Computer Science / Engineering} (0.37) — технологический стек и hard-skills.
-\end{enumerate}
 
-\subsection{Тематическое моделирование (LDA)}
-С помощью алгоритма LDA были выделены 5 ключевых исследовательских направлений:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{network}
+    \caption{Сеть совместной встречаемости ключевых слов (топ-100 рёбер). Узлы окрашены по выявленным сообществам (кластерам).}
+    \label{fig:network}
+\end{figure}
+
+\subsubsection*{Метрики центральности (Degree Centrality)}
+Расчёт центральности показал, что наиболее влиятельными узлами сети являются:
+
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+\textbf{Ключевое слово} & \textbf{Degree Centrality} \\
+\midrule
+Psychology        & 0.875 \\
+Medicine          & 0.708 \\
+Pedagogy          & 0.708 \\
+Political science & 0.708 \\
+Medical education & 0.667 \\
+Sociology         & 0.625 \\
+Public relations  & 0.542 \\
+Engineering       & 0.458 \\
+Internship        & 0.375 \\
+Computer science  & 0.375 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection*{Кластерный анализ (Community Detection)}
+Алгоритм Greedy Modularity Maximization выделил \textbf{3 основных кластера}:
+
 \begin{itemize}
-    \item \textbf{Topic 1:} Карьерные траектории в инженерии и STEM.
-    \item \textbf{Topic 2:} Психологические аспекты и опыт студента во время практики.
-    \item \textbf{Topic 3:} Проблемы выгорания (Burnout) в начале карьеры.
-    \item \textbf{Topic 4:} Экономика образования и институциональная поддержка.
-    \item \textbf{Topic 5:} Цифровая трансформация найма после COVID-19.
+    \item \textbf{Кластер 1 — Социальные и поведенческие науки:} Psychology, Political science, Sociology, Public relations, Work. Отражает исследования влияния стажировок на социализацию и идентичность молодых специалистов.
+    \item \textbf{Кластер 2 — Медицинское образование и методология:} Pedagogy, Medicine, Medical education, Social psychology, Qualitative research. Наиболее структурированная область с развитой методологией практической подготовки.
+    \item \textbf{Кластер 3 — STEM-стажировки:} Engineering, Internship, Computer science, Engineering ethics. Прикладной кластер, наиболее релевантный для IT-рынка труда и платформы Staj.kz.
 \end{itemize}
 
+\subsection{Анализ трендов ключевых слов}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.90\textwidth]{keyword_trends}
+    \caption{Динамика частоты ключевых слов по годам (2014--2024).}
+    \label{fig:trends}
+\end{figure}
+
+\textbf{Вывод:} Термин \textit{internship} демонстрирует стабильный рост. Термин \textit{medicine} достигает максимума в 2020--2022 годах — что совпадает с пандемией. Термины \textit{engineering} и \textit{computer science} уверенно растут с 2019 года, отражая усиление интереса академического сообщества к стажировкам в технологическом секторе. После 2022 года наблюдается некоторое снижение публикационной активности, что типично для постпандемийного спада «тематической волны».
+
+\subsection{Тематическое моделирование (LDA)}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{lda_topics}
+    \caption{Топ-10 ключевых слов каждого LDA-топика (CountVectorizer, 5 тем).}
+    \label{fig:lda}
+\end{figure}
+
+Алгоритм LDA выделил \textbf{5 исследовательских направлений}:
+
+\begin{center}
+\begin{tabular}{lp{7.5cm}l}
+\toprule
+\textbf{Топик} & \textbf{Топ слова} & \textbf{Интерпретация} \\
+\midrule
+Topic 1 & internship, education, psychology, medical, medicine, economics, pedagogy & Образовательные институты и рынок труда \\
+Topic 2 & career, early, public, sociology, medicine, covid, 19 & COVID-19 и карьерные риски \\
+Topic 3 & career, engineering, development, psychology, sociology, social & Инженерные карьеры и развитие \\
+Topic 4 & psychology, career, social, pedagogy, development, mathematics, professional & Профессиональное развитие и педагогика \\
+Topic 5 & medicine, nursing, medical, health, clinical, family, burnout & Медицинские стажировки и выгорание \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Ссылки на данные и код}
+\begin{itemize}[noitemsep]
+    \item Скрипт анализа: \texttt{assignment4/analyze\_data.py}
+    \item Графики: \texttt{assignment4/output/figures/}
+    \item Результаты топик-моделирования: \texttt{assignment4/output/topics.json}
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────
 \section{Задание 3. Стратегические инсайты для Staj.kz}
 
-\subsection{Research Gaps (Исследовательские пробелы)}
-1. \textbf{Региональный дефицит:} Острый недостаток глубоких исследований рынка стажировок именно в Центральной Азии.
-2. \textbf{AI-Ethics:} Мало работ посвящено минимизации предвзятости (bias) алгоритмов при автоматическом подборе интернов.
-
-\subsection{Применение научных решений в бизнесе}
-На основе анализа предлагаются следующие инновации для Staj.kz:
+\subsection{Research Gaps — Исследовательские пробелы}
 \begin{enumerate}
-    \item \textbf{Алгоритмы мэтчинга:} Использование семантических связей из выявленных тем (Topic 1) для сопоставления навыков студентов с требованиями работодателей.
-    \item \textbf{Профилактика оттока:} Интеграция опросников на основе психологических исследований (Topic 2) для оценки риска "выгорания" стажера.
-    \item \textbf{EdTech-интеграция:} Создание модулей обучения soft-skills, востребованность которых подтверждена центральностью узла "Psychology" в нашей сети.
+    \item \textbf{Региональный дефицит:} Острый недостаток глубоких исследований рынка стажировок именно в Центральной Азии. Данные по топ-странам (США, Великобритания, Китай, Австралия) не отражают специфику казахстанского рынка труда.
+    \item \textbf{AI-Ethics в рекрутинге:} Очень мало работ посвящено минимизации предвзятости (bias) алгоритмов при автоматическом подборе интернов — ключевой вопрос для платформы, принимающей данные-решения.
+    \item \textbf{Долгосрочный карьерный трекинг:} Большинство исследований фокусируются на краткосрочном опыте стажировки; отсутствуют лонгитюдные исследования влияния первой стажировки на долгосрочную карьерную траекторию.
+\end{enumerate}
+
+\subsection{Research Fronts — Ведущие исследовательские направления}
+\begin{itemize}
+    \item Автоматизированные системы подбора (Topic 3: engineering + career development).
+    \item Психологическое сопровождение стажёра и профилактика выгорания (Topic 5: burnout).
+    \item Цифровая трансформация найма после COVID-19 (Topic 2: covid + career).
+    \item Персонализированное обучение soft-skills на основе педагогических исследований (Topic 4).
+\end{itemize}
+
+\subsection{Применение научных решений для Staj.kz}
+На основе проведённого анализа предлагаются следующие инновации:
+
+\begin{enumerate}
+    \item \textbf{Алгоритмы мэтчинга (Topic 1, Cluster 3):} Реализовать рекомендательную систему, использующую семантические связи из выявленных LDA-тем для сопоставления навыков студентов с требованиями работодателей — не только по hard-skills, но и по долгосрочным карьерным траекториям.
+
+    \item \textbf{Профилактика выгорания (Topic 5, Cluster 2):} Интегрировать психологические опросники (на основе исследований \textit{burnout} и \textit{clinical} практик) для раннего выявления риска выгорания стажёра. Это повышает retention-метрику платформы и ценность для работодателей.
+
+    \item \textbf{EdTech-модули soft-skills (Topic 4, Cluster 1):} Создать обучающие модули, основанные на педагогических исследованиях (central node: \textit{Psychology}, centrality 0.875), для подготовки студентов к социальным аспектам первого рабочего места.
+
+    \item \textbf{Bias-аудит алгоритмов (Research Gap 2):} Разработать внутреннюю методологию проверки алгоритмов подбора на предмет дискриминационных паттернов — закрыть выявленный academic gap и получить конкурентное преимущество на рынке.
 \end{enumerate}
 
 \section*{Заключение}
-Научный анализ подтвердил, что современный рынок стажировок движется в сторону персонализации и глубокой психологической поддержки кандидата. Для Staj.kz это означает необходимость перехода от простого "доски объявлений" к интеллектуальной платформе сопровождения карьеры.
+Научный анализ 1192 публикаций подтвердил, что современный рынок стажировок движется в сторону персонализации и глубокой психологической поддержки кандидата. Сетевой анализ выявил три чётких кластера: социальные науки, медицинское образование и STEM-стажировки — из которых третий является наиболее релевантным для IT-платформы Staj.kz. Тематическое моделирование выделило пять направлений, два из которых (выгорание и цифровая трансформация после COVID-19) представляют прямые точки приложения для продуктовых решений. Для Staj.kz это означает необходимость перехода от простой «доски объявлений» к интеллектуальной платформе сопровождения карьеры с встроенной аналитикой и персонализацией.
 
 \end{document}
